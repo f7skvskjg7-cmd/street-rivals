@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>StreetRivals.com</title>
+<style>
+:root{--bg:#090b10;--panel:#111722;--line:#293445;--text:#edf2fa;--muted:#9eacbf;--red:#e24c55;--blue:#54a7e8;--gold:#e9bd58}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#1a2534,#080a0e 65%);color:var(--text);font:15px system-ui,Segoe UI,Arial;min-height:100vh}
+header{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--line);background:#090d14eF}
+.logo{font-weight:900;letter-spacing:2px;font-size:20px}.logo span{color:var(--red)}.tag{color:var(--muted);font-size:12px}
+main{max-width:1180px;margin:auto;padding:20px;display:grid;grid-template-columns:1fr 300px;gap:16px}
+#stage{height:590px;position:relative;border:1px solid #303d50;border-radius:14px;overflow:hidden;background:#101722}
+canvas{display:block;width:100%;height:100%}
+.overlay{position:absolute;inset:0;pointer-events:none;display:flex;flex-direction:column;justify-content:space-between;padding:18px}
+.topbar{display:flex;gap:14px;justify-content:space-between;align-items:center}
+.fighter{width:42%;}.fighter.right{text-align:right}.fightername{font-size:13px;font-weight:800;letter-spacing:1px;margin-bottom:6px}
+.health{height:13px;background:#29313d;border:1px solid #536174;border-radius:20px;overflow:hidden}.fill{height:100%;width:100%;background:linear-gradient(90deg,#a52d38,#f36c62);transition:width .2s}
+.right .fill{margin-left:auto;background:linear-gradient(90deg,#3887c6,#70c7ef)}
+.vs{font-weight:900;color:var(--gold);font-size:20px}
+.bottomhud{display:flex;justify-content:space-between;align-items:end}.hint{font-size:12px;color:#d2d9e4;background:#090d14b8;padding:8px 11px;border:1px solid #344154;border-radius:8px;max-width:72%}
+#status{font-weight:800;color:var(--gold);text-align:right;text-shadow:0 2px 8px #000}
+.side{background:linear-gradient(180deg,#141c28,#0d121a);border:1px solid var(--line);border-radius:14px;padding:16px}
+h2{font-size:14px;text-transform:uppercase;letter-spacing:1.4px;margin:0 0 12px;color:#c8d5e6}
+.section{padding-bottom:15px;margin-bottom:15px;border-bottom:1px solid var(--line)}
+select,button{font:inherit;color:var(--text);background:#1a2635;border:1px solid #39495e;border-radius:8px;padding:10px;width:100%}
+button{cursor:pointer;font-weight:750;transition:.15s}button:hover{background:#26374c;border-color:#6a819e}button.primary{background:#9f303b;border-color:#d45a63}button.primary:hover{background:#bd3c48}
+.row{display:flex;gap:8px}.row button{flex:1}
+.stat{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;padding:4px 0}.stat b{color:var(--text)}
+.small{font-size:12px;color:var(--muted);line-height:1.5}.pill{display:inline-block;padding:3px 8px;border-radius:99px;background:#202d3d;color:#b9d8f2;font-size:11px;margin:2px}
+#menu{position:absolute;inset:0;background:#080b11eF;display:flex;align-items:center;justify-content:center;z-index:4;padding:20px}
+.menuCard{max-width:430px;width:100%;background:#111925;border:1px solid #39485c;border-radius:16px;padding:24px;box-shadow:0 20px 80px #000}
+.menuCard h1{margin:0 0 6px;font-size:34px;letter-spacing:1px}.menuCard h1 span{color:var(--red)}
+.menuCard p{color:var(--muted);line-height:1.55}.menuCard label{display:block;color:#c7d4e4;font-size:13px;margin:14px 0 6px}
+#toast{position:absolute;left:50%;top:24%;transform:translateX(-50%);font-weight:900;font-size:22px;color:#fff;text-shadow:0 2px 10px #000;opacity:0;transition:opacity .15s;pointer-events:none}
+#gameOver{position:absolute;inset:0;z-index:3;display:none;align-items:center;justify-content:center;background:#05080dcc;padding:20px}
+#gameOver .menuCard{text-align:center}
+footer{max-width:1180px;margin:0 auto;padding:0 20px 24px;color:#7e8da1;font-size:11px}
+@media(max-width:850px){main{grid-template-columns:1fr}#stage{height:60vh;min-height:420px}.side{display:grid;grid-template-columns:1fr 1fr;gap:12px}.section{border:0;margin:0}}
+@media(max-width:560px){main{padding:10px}#stage{height:55vh;min-height:360px}.side{display:block}.tag{display:none}.hint{font-size:10px}}
+</style>
+</head>
+<body>
+<header><div><div class="logo">STREET<span>RIVALS</span>.COM</div><div class="tag">ONLINE MATCHES • COMPUTER BATTLES</div></div><div class="tag">FREE BROWSER GAME • MULTIPLAYER PREVIEW</div></header>
+<main>
+<section id="stage">
+<canvas id="game"></canvas>
+<div class="overlay">
+  <div class="topbar">
+    <div class="fighter"><div class="fightername" id="pname">PLAYER</div><div class="health"><div class="fill" id="php"></div></div></div>
+    <div class="vs">VS</div>
+    <div class="fighter right"><div class="fightername" id="enemyName">COMPUTER</div><div class="health"><div class="fill" id="ehp"></div></div></div>
+  </div>
+  <div class="bottomhud"><div class="hint">WASD move • Mouse aim • Left click combo • Right click special • Space dodge • Esc menu</div><div id="status">READY</div></div>
+</div>
+<div id="toast"></div>
+<div id="gameOver"><div class="menuCard">
+<h1 id="resultTitle">ROUND OVER</h1>
+<p id="resultText">Ready for another fight?</p>
+<button class="primary" id="playAgainBtn">PLAY AGAIN</button>
+<button id="resultMenuBtn" style="margin-top:8px">MAIN MENU</button>
+</div></div>
+<div id="menu"><div class="menuCard">
+<h1>STREET<span>RIVALS</span></h1>
+<div class="tag">OWN THE ARENA. EARN YOUR RANK.</div>
+<p>Choose how to play Street Rivals. Fight the computer any time, or open the online matchmaking preview.</p>
+<label for="fighterSelect">CHOOSE YOUR FIGHTER</label>
+<select id="fighterSelect"><option value="JAX">Jax • Streetwear</option><option value="KAI">Kai • Athlete</option><option value="ROOK">Rook • Heavyweight</option></select>
+<label for="arenaSelect">CHOOSE YOUR ARENA</label>
+<select id="arenaSelect"><option value="street">Night City Street</option><option value="roof">Rooftop</option><option value="garage">Underground Garage</option><option value="warehouse">Abandoned Warehouse</option></select>
+<div class="row" style="margin-top:18px"><button class="primary" id="startBtn">FIGHT COMPUTER</button></div>
+<div class="row" style="margin-top:8px"><button id="onlineBtn">ONLINE MATCH</button></div>
+<p class="small" id="onlineInfo">Online matchmaking is shown as a preview. Real random-player matches need a multiplayer server, which is not connected yet. Fight the computer while the server is being set up.</p>
+</div></div>
+</section>
+<aside class="side">
+<div class="section"><h2>Fighter profile</h2><div class="stat"><span>Selected fighter</span><b id="profileName">Jax</b></div><div class="stat"><span>Coins</span><b id="coins">250</b></div><div class="stat"><span>Rank</span><b id="rank">Rookie</b></div><div class="stat"><span>Wins</span><b id="wins">0</b></div></div>
+<div class="section"><h2>Game modes</h2><div class="stat"><span>Computer battle</span><b>Available</b></div><div class="stat"><span>Online matchmaking</span><b>Server needed</b></div><p class="small">When the multiplayer server is connected, players will be matched with random opponents. If nobody is available, they can choose a computer battle.</p></div>
+<div class="section"><h2>Player controls</h2><div class="small">W / A / S / D: move<br>Mouse: face direction<br>Left click: combo hit<br>Right click: special move<br>Space: quick dodge<br>Esc: return to menu</div></div>
+<div class="section"><h2>Upgrade shop</h2><div class="stat"><span>Power</span><b id="power">1</b></div><div class="stat"><span>Stamina</span><b id="stamina">1</b></div><button id="upgradeBtn">UPGRADE POWER • 100 COINS</button><p class="small">Upgrades are saved on this device only.</p></div>
+<div class="section"><h2>Online features planned</h2><span class="pill">Random 1v1</span><span class="pill">Player lobby</span><span class="pill">Computer fallback</span><p class="small">Random-player matchmaking will work after a multiplayer server is connected.</p></div>
+<button id="menuBtn">MAIN MENU</button>
+</aside>
+</main>
+<footer>StreetRivals.com is an original browser-game prototype. Online multiplayer requires a separate server and is not active in this version. Fictional arcade action only. No real-world fighting instructions or graphic violence.</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+<script>
+(()=> {
+const canvas=document.getElementById('game'), stage=document.getElementById('stage');
+const menu=document.getElementById('menu'), toast=document.getElementById('toast');
+const $=id=>document.getElementById(id);
+let renderer,scene,camera,clock,player,bot,keys={},mouse={x:0,y:0},running=false;
+let pHealth=100,eHealth=100,coins=250,wins=0,power=1,stamina=1,combo=0,lastHit=0,botTimer=0,arena='street';
+let playerSpeed=4.8, botFlash=0, pFlash=0, dodge=0, messageTimer=0;
+const fighters={JAX:{color:0x253f61,accent:0xd34c54},KAI:{color:0x28634f,accent:0xd6b66c},ROOK:{color:0x4a3c50,accent:0x9dabbc}};
+function init(){
+ if(!window.THREE){$('status').textContent='3D library unavailable';return}
+ renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ scene=new THREE.Scene();scene.background=new THREE.Color(0x101824);scene.fog=new THREE.Fog(0x101824,18,42);
+ camera=new THREE.PerspectiveCamera(55,1,.1,100);camera.position.set(0,7,11);
+ clock=new THREE.Clock();
+ scene.add(new THREE.HemisphereLight(0x9fb8d8,0x1b1b22,2));
+ const key=new THREE.DirectionalLight(0xffffff,2.2);key.position.set(-5,10,7);key.castShadow=true;scene.add(key);
+ const rim=new THREE.PointLight(0x397bbd,20,25);rim.position.set(3,5,-5);scene.add(rim);
+ buildArena('street');player=makeFighter('JAX',-2,0);bot=makeFighter('BOT',2,0,true);
+ resize();window.addEventListener('resize',resize);renderer.setAnimationLoop(animate);
+}
+function mat(color,rough=.75){return new THREE.MeshStandardMaterial({color,roughness:rough})}
+function box(w,h,d,color,x,y,z){let m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(color));m.position.set(x,y,z);m.castShadow=true;m.receiveShadow=true;scene.add(m);return m}
+function buildArena(kind){
+ arena=kind;
+ while(scene.children.length>4)scene.remove(scene.children[scene.children.length-1]);
+ let floorColor=kind==='roof'?0x303743:kind==='garage'?0x242a32:kind==='warehouse'?0x292d35:0x202b37;
+ let floor=new THREE.Mesh(new THREE.PlaneGeometry(38,38),mat(floorColor));floor.rotation.x=-Math.PI/2;floor.position.y=-.05;floor.receiveShadow=true;scene.add(floor);
+ const grid=new THREE.GridHelper(36,36,0x43536a,0x293646);grid.position.y=.01;scene.add(grid);
+ if(kind==='street'){
+  for(let i=-3;i<=3;i++){box(2.8,7,3,0x182231,i*5,3.4,-10);box(2.8,5,3,0x202c3c,i*5,2.4,10)}
+  for(let i=-2;i<=2;i++)box(.15,3,.15,0xf0bd58,i*4,1.5,-2);
+ } else if(kind==='roof'){
+  for(let i=-2;i<=2;i++){box(1,1.2,1,0x485566,i*5,.6,-7);box(1,1.2,1,0x485566,i*5,.6,7)}
+  box(30,.5,.5,0x778391,0,.3,-13);box(30,.5,.5,0x778391,0,.3,13);
+ } else if(kind==='garage'){
+  for(let i=-2;i<=2;i++)box(2,1.3,4,0x343f4d,i*5,.65,-8);
+  for(let i=-2;i<=2;i++)box(.25,5,.25,0x667383,i*6,2.5,0);
+ } else {
+  for(let i=-2;i<=2;i++){box(2,4,2,0x3a414c,i*6,2,-9);box(2,4,2,0x303945,i*6,2,9)}
+ }
+}
+function makeFighter(type,x,z,isBot=false){
+ let group=new THREE.Group();group.position.set(x,0,z);scene.add(group);
+ const cfg=fighters[type]||{color:0x7d343c,accent:0xc9cbd0};
+ const body=new THREE.Mesh(new THREE.CapsuleGeometry(.42,.85,5,8),mat(isBot?0x8c4248:cfg.color));body.position.y=1.35;body.castShadow=true;group.add(body);
+ const head=new THREE.Mesh(new THREE.SphereGeometry(.29,16,12),mat(0xb88969));head.position.y=2.18;head.castShadow=true;group.add(head);
+ const hair=new THREE.Mesh(new THREE.SphereGeometry(.3,12,8),mat(0x17191e));hair.scale.y=.5;hair.position.set(0,2.38,0);group.add(hair);
+ const armMat=mat(isBot?0x9e5b57:cfg.accent), legMat=mat(0x171d27);
+ const arms=[],legs=[];
+ for(const s of [-1,1]){
+  let arm=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.58,4,7),armMat);arm.position.set(s*.48,1.5,.08);arm.rotation.z=-s*.18;arm.castShadow=true;group.add(arm);arms.push(arm);
+  let leg=new THREE.Mesh(new THREE.CapsuleGeometry(.16,.62,4,7),legMat);leg.position.set(s*.2,.48,0);leg.castShadow=true;group.add(leg);legs.push(leg);
+ }
+ const belt=new THREE.Mesh(new THREE.BoxGeometry(.68,.16,.48),mat(0x11151c));belt.position.y=.93;group.add(belt);
+ return {group,body,arms,legs,hp:100,isBot,hitCooldown:0,anim:0};
+}
+function resize(){if(!renderer)return;let w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+function say(t){toast.textContent=t;toast.style.opacity=1;messageTimer=.8}
+function start(){
+ $('enemyName').textContent='COMPUTER';
+ if(!renderer){init();if(!renderer)return}
+ if(player){scene.remove(player.group);scene.remove(bot.group)}
+ let type=$('fighterSelect').value;buildArena($('arenaSelect').value);
+ player=makeFighter(type,-2,0);bot=makeFighter('BOT',2,0,true);
+ pHealth=100;eHealth=100;combo=0;botTimer=0;keys={};$('gameOver').style.display='none';running=true;menu.style.display='none';$('pname').textContent=type;$('profileName').textContent=type;
+ updateHud();say('FIGHT!');
+}
+function showGameOver(won){
+ $('resultTitle').textContent=won?'YOU WIN!':'COMPUTER WINS';
+ $('resultText').textContent=won?'Great fight! You earned 75 coins.':'Good try! Choose Play Again for a rematch.';
+ $('gameOver').style.display='flex';
+}
+function updateHud(){$('php').style.width=Math.max(0,pHealth)+'%';$('ehp').style.width=Math.max(0,eHealth)+'%';$('coins').textContent=coins;$('wins').textContent=wins;$('power').textContent=power;$('stamina').textContent=stamina;$('rank').textContent=wins>=10?'Contender':wins>=4?'Rising Star':'Rookie'}
+function attack(special=false){
+ if(!running||!player||pHealth<=0||eHealth<=0)return;
+ let now=performance.now();if(now-lastHit<(special?800:330))return;lastHit=now;
+ let dist=player.group.position.distanceTo(bot.group.position);
+ if(dist<2.35){let dmg=(special?22:9)+power*2;eHealth=Math.max(0,eHealth-dmg);combo++;botFlash=.18;say(special?'SPECIAL MOVE!':combo>1?combo+' HIT COMBO!':'HIT!')}
+ else say('MOVE CLOSER');
+ updateHud();if(eHealth<=0){running=false;wins++;coins+=75;updateHud();showGameOver(true)}
+}
+function animate(){
+ if(!renderer)return;let dt=Math.min(clock.getDelta(),.04);
+ if(messageTimer>0){messageTimer-=dt;if(messageTimer<=0)toast.style.opacity=0}
+ if(running&&player&&bot){
+  let move=new THREE.Vector3((keys.d?1:0)-(keys.a?1:0),0,(keys.s?1:0)-(keys.w?1:0));
+  if(move.length()>0){move.normalize();player.group.position.addScaledVector(move,playerSpeed*dt);player.body.rotation.z=Math.sin(performance.now()*.012)*.04}
+  player.group.position.x=THREE.MathUtils.clamp(player.group.position.x,-8,8);player.group.position.z=THREE.MathUtils.clamp(player.group.position.z,-8,8);
+  if(dodge>0){dodge-=dt;player.group.position.x+=.12}
+  let dx=player.group.position.x-bot.group.position.x,dz=player.group.position.z-bot.group.position.z,dist=Math.hypot(dx,dz);
+  if(dist>1.65){bot.group.position.x+=dx/dist*1.6*dt;bot.group.position.z+=dz/dist*1.6*dt}
+  else {botTimer+=dt;if(botTimer>1.6){botTimer=0;if(dodge<=0){pHealth=Math.max(0,pHealth-5);say('BOT HIT');updateHud();if(pHealth<=0){running=false;showGameOver(false)}}}}
+  bot.group.lookAt(player.group.position);player.group.lookAt(bot.group.position);
+  player.anim+=dt*8;bot.anim+=dt*6;
+  player.legs.forEach((l,i)=>l.rotation.x=Math.sin(player.anim+i*Math.PI)*.35*(move.length()>0?1:0));
+  bot.legs.forEach((l,i)=>l.rotation.x=Math.sin(bot.anim+i*Math.PI)*.18);
+  if(botFlash>0){botFlash-=dt;bot.body.material.color.setHex(0xffffff)}else bot.body.material.color.setHex(0x8c4248);
+  let target=new THREE.Vector3(player.group.position.x*.55,4.4,player.group.position.z+8.5);camera.position.lerp(target,1-Math.pow(.001,dt));camera.lookAt(player.group.position.x,1,player.group.position.z);
+ }
+ if(player&&bot&&renderer){renderer.render(scene,camera)}
+}
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(e.code==='Space'){e.preventDefault();if(running&&stamina>0){dodge=.25;stamina=Math.max(0,stamina-.1)}}if(e.key==='Escape'){running=false;menu.style.display='flex'}});
+window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+canvas.addEventListener('mousemove',e=>{let r=canvas.getBoundingClientRect();mouse.x=(e.clientX-r.left)/r.width;mouse.y=(e.clientY-r.top)/r.height});
+canvas.addEventListener('mousedown',e=>{if(e.button===0)attack(false);if(e.button===2)attack(true)});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+$('startBtn').onclick=start;$('playAgainBtn').onclick=start;$('resultMenuBtn').onclick=()=>{$('gameOver').style.display='none';menu.style.display='flex'};
+$('onlineBtn').onclick=()=>{
+ running=false;
+ $('onlineInfo').textContent='Online matchmaking is not live yet because the multiplayer server has not been connected. You can still play against the computer using FIGHT COMPUTER.';
+ say('ONLINE SERVER NOT CONNECTED');
+};
+$('menuBtn').onclick=()=>{running=false;menu.style.display='flex'};
+$('upgradeBtn').onclick=()=>{if(coins>=100){coins-=100;power++;updateHud();say('POWER UPGRADED')}else say('NOT ENOUGH COINS')};
+$('fighterSelect').onchange=()=>{$('profileName').textContent=$('fighterSelect').value};
+init();updateHud();
+})();
+</script>
+</body>
+</html>
